@@ -1,0 +1,7 @@
+.train-card { background: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
+.train-card:hover { transform: translateY(-3px); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.route { font-weight: 600; margin: 0.3rem 0; }
+.schedule { display: flex; gap: 1rem; color: #555; font-size: 0.9rem; margin-bottom: 1rem; }
+.btn-book { width: 100%; padding: 0.6rem; background: #005bb5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.btn-book:hover { background: #004488; }
