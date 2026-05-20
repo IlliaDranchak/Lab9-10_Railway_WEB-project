@@ -4,7 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { trains } from '../data/trains';
-import { BookingService } from '../services/BookingService';
+import { useBooking } from '../context/BookingContext';
 import WagonSelector from '../components/WagonSelector';
 import SeatMap from '../components/SeatMap';
 import BookingForm from '../components/BookingForm';
@@ -13,14 +13,31 @@ import './Booking.css';
 const Booking = () => {
   const { trainId } = useParams();
   const navigate = useNavigate();
-
-  const [selectedWagon, setSelectedWagon] = useState(1);
-  const [selectedSeats, setSelectedSeats] = useState([]);
-  const [seats, setSeats] = useState([]);
+  
+  // Отримуємо стан з контексту
+  const { 
+    selectedTrain, 
+    setSelectedTrain,
+    selectedWagon, 
+    setSelectedWagon,
+    selectedSeats,
+    setSelectedSeats,
+    bookTickets,
+    clearSelection
+  } = useBooking();
 
   const train = trains.find((t) => t.id === parseInt(trainId));
 
-  // Генерація місць
+  // Зберігаємо обраний потяг у контекст
+  useEffect(() => {
+    if (train) {
+      setSelectedTrain(train);
+    }
+  }, [train, setSelectedTrain]);
+
+  // Генерація місць (локальний стан)
+  const [seats, setSeats] = useState([]);
+  
   useEffect(() => {
     if (!train) return;
     const baseSeatNum = (selectedWagon - 1) * 36;
@@ -38,26 +55,26 @@ const Booking = () => {
 
   const handleSelectSeat = (seat) => {
     if (seat.status === 'booked') return;
+    
     const newSeats = seats.map((s) =>
       s.id === seat.id ? { ...s, status: s.status === 'selected' ? 'free' : 'selected' } : s
     );
     setSeats(newSeats);
+    
     const isSelecting = newSeats.find(s => s.id === seat.id).status === 'selected';
     setSelectedSeats(prev =>
       isSelecting ? [...prev, seat.number] : prev.filter(n => n !== seat.number)
     );
   };
 
-  const handleBookingSubmit = (bookingData) => {
-    BookingService.bookTicket({
-      trainNumber: train.number,
-      route: `${train.from} → ${train.to}`,
-      ...bookingData
+  const handleBookingSubmit = (formData) => {
+    bookTickets({
+      ...formData,
     });
 
-    toast.success(`✅ Місця ${bookingData.selectedSeats.join(', ')} успішно заброньовано!`);
+    toast.success(`✅ Місця ${selectedSeats.join(', ')} успішно заброньовано!`);
+    clearSelection();
 
-    // Затримка перед поверненням
     setTimeout(() => navigate('/'), 2000);
   };
 
