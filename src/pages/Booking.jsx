@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import { trains } from '../data/trains';
+import { BookingService } from '../services/BookingService';
 import WagonSelector from '../components/WagonSelector';
 import SeatMap from '../components/SeatMap';
+import BookingForm from '../components/BookingForm';
 import './Booking.css';
 
 const Booking = () => {
   const { trainId } = useParams();
   const navigate = useNavigate();
-  
-  // Стани
+
   const [selectedWagon, setSelectedWagon] = useState(1);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [seats, setSeats] = useState([]);
 
   const train = trains.find((t) => t.id === parseInt(trainId));
 
-  // Генерація місць при зміні вагона
+  // Генерація місць
   useEffect(() => {
     if (!train) return;
-
-    // Базовий номер місця залежить від вагона (вагон 1: 1-36, вагон 2: 37-72)
     const baseSeatNum = (selectedWagon - 1) * 36;
-    
     const generatedSeats = Array.from({ length: 36 }, (_, i) => {
       const seatNum = baseSeatNum + i + 1;
       return {
@@ -31,64 +32,66 @@ const Booking = () => {
         status: Math.random() > 0.8 ? 'booked' : 'free',
       };
     });
-
     setSeats(generatedSeats);
-    setSelectedSeats([]); // Скидаємо вибір при переході в інший вагон
-  }, [train, selectedWagon]); // Залежність від selectedWagon важлива!
-
-  const handleSelectWagon = (wagonNum) => {
-    setSelectedWagon(wagonNum);
-  };
+    setSelectedSeats([]);
+  }, [train, selectedWagon]);
 
   const handleSelectSeat = (seat) => {
     if (seat.status === 'booked') return;
-
-    const newSeats = seats.map((s) => {
-      if (s.id === seat.id) {
-        return { ...s, status: s.status === 'selected' ? 'free' : 'selected' };
-      }
-      return s;
-    });
+    const newSeats = seats.map((s) =>
+      s.id === seat.id ? { ...s, status: s.status === 'selected' ? 'free' : 'selected' } : s
+    );
     setSeats(newSeats);
-
-    const isCurrentlySelected = newSeats.find(s => s.id === seat.id).status === 'selected';
-    setSelectedSeats(prev => 
-      isCurrentlySelected 
-        ? [...prev, seat.number] 
-        : prev.filter(n => n !== seat.number)
+    const isSelecting = newSeats.find(s => s.id === seat.id).status === 'selected';
+    setSelectedSeats(prev =>
+      isSelecting ? [...prev, seat.number] : prev.filter(n => n !== seat.number)
     );
   };
 
-  if (!train) return <p>Потяг не знайдено... <button onClick={() => navigate('/')}>Назад</button></p>;
+  const handleBookingSubmit = (bookingData) => {
+    BookingService.bookTicket({
+      trainNumber: train.number,
+      route: `${train.from} → ${train.to}`,
+      ...bookingData
+    });
 
-  // Припустимо, що у кожного потяга 3 вагони (можна зберегти це в trains.js)
-  const wagonsCount = 3; 
+    toast.success(`✅ Місця ${bookingData.selectedSeats.join(', ')} успішно заброньовано!`);
+
+    // Затримка перед поверненням
+    setTimeout(() => navigate('/'), 2000);
+  };
+
+  if (!train) return <p>Потяг не знайдено</p>;
 
   return (
     <div className="booking-page">
-      <button className="btn-back" onClick={() => navigate('/')}>← Назад до списку</button>
+      <ToastContainer position="top-center" />
+      
+      <button className="btn-back" onClick={() => navigate('/')}>← Назад</button>
       
       <div className="train-info">
         <h2>🚂 Потяг №{train.number}</h2>
-        <p>{train.from} → {train.to} | {train.date} о {train.time}</p>
+        <p>{train.from} → {train.to} | {train.date}</p>
       </div>
 
-      {/* Компонент вибору вагона */}
       <WagonSelector 
-        wagonsCount={wagonsCount} 
+        wagonsCount={3} 
         selectedWagon={selectedWagon} 
-        onSelectWagon={handleSelectWagon} 
+        onSelectWagon={setSelectedWagon} 
       />
 
-      {/* Карта місць (передаємо номер вагона для нумерації) */}
-      <SeatMap seats={seats} onSelectSeat={handleSelectSeat} />
+      <SeatMap 
+        seats={seats} 
+        onSelectSeat={handleSelectSeat}
+        wagonNumber={selectedWagon}
+      />
 
-      {selectedSeats.length > 0 && (
-        <div className="selection-summary">
-          <h3>Вагон {selectedWagon}, місця: {selectedSeats.join(', ')}</h3>
-          <p>Кількість: {selectedSeats.length}</p>
-        </div>
-      )}
+      <BookingForm 
+        selectedSeats={selectedSeats}
+        train={train}
+        wagonNumber={selectedWagon}
+        onSubmit={handleBookingSubmit}
+      />
     </div>
   );
 };

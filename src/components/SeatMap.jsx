@@ -1,13 +1,13 @@
 import './SeatMap.css';
 
-const SeatMap = ({ seats, onSelectSeat }) => {
+const SeatMap = ({ seats, onSelectSeat, wagonNumber }) => {
   // Розділяємо місця на ліву та праву сторону
   const leftSeats = seats.filter(seat => seat.id <= 18);
   const rightSeats = seats.filter(seat => seat.id > 18);
 
   return (
     <div className="wagon-layout">
-      <h3 className="wagon-title">🚃 Вагон №1 (Купе)</h3>
+      <h3 className="wagon-title">🚃 Вагон №{wagonNumber} (Купе)</h3>
       
       <div className="wagon-container">
         {/* Ліва сторона */}
